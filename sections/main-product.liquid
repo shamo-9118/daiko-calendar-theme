@@ -357,53 +357,58 @@
                     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', initTierPricing); } else { initTierPricing(); }
                   })();
                 </script>
+
+                {% comment %} 商品選択画面の合計金額の選択ロジック {% endcomment %}
                 <script>
-    (function() {
-      const initTierPricing = function() {
-        const rawData = document.getElementById('tier-prices-raw');
-        
-        // 【修正箇所1】input ではなく select を探すように変更
-        const qtyInput = document.querySelector('select[name="quantity"]');
-        
-        if (!rawData || !qtyInput) return;
+                  (function() {
+                    const initTierPricing = function() {
+                      const rawData = document.getElementById('tier-prices-raw');
+                      const qtyInput = document.querySelector('select[name="quantity"]');
+                      
+                      if (!rawData || !qtyInput) return;
 
-        const tiers = JSON.parse(rawData.textContent);
-        
-        function calculate() {
-          const qty = parseInt(qtyInput.value) || 0;
-          
-          let unitPrice = tiers[0].unit_price;
-          tiers.forEach(tier => {
-            if (qty >= tier.min_qty) {
-              unitPrice = tier.unit_price;
-            }
-          });
+                      const tiers = JSON.parse(rawData.textContent);
+                      
+                      // Shopifyから定価(税別)を取得。100で割る必要はなくそのままの数値を使用
+                      const basePrice = {{ product.price | money_without_currency | replace: ',', '' }};
 
-          const subtotal = unitPrice * qty;
-          const tax = Math.floor(subtotal * 0.1);
-          const total = subtotal + tax;
-          const unitInclTax = qty > 0 ? Math.round(total / qty) : 0;
+                      function calculate() {
+                        const qty = parseInt(qtyInput.value) || 0;
+                        
+                        let ratePercent = tiers[0].unit_price; 
+                        tiers.forEach(tier => {
+                          if (qty >= tier.min_qty) {
+                            ratePercent = tier.unit_price;
+                          }
+                        });
 
-          document.getElementById('js-tier-subtotal').innerText = subtotal.toLocaleString() + '円';
-          document.getElementById('js-tier-tax').innerText = tax.toLocaleString() + '円';
-          document.getElementById('js-tier-total').innerText = total.toLocaleString() + '円';
-          document.getElementById('js-tier-unit-incl-tax').innerText = unitInclTax.toLocaleString() + '円';
-        }
+                        // Math.round（四捨五入）に変更
+                        const unitPrice = Math.round(basePrice * (ratePercent / 100));
+                        const subtotal = unitPrice * qty;
+                        
+                        const tax = Math.floor(subtotal * 0.1);
+                        const total = subtotal + tax;
+                        const unitInclTax = qty > 0 ? Math.round(total / qty) : 0;
 
-        // 【修正箇所2】input/change 両方に対応させておくのが確実です
-        qtyInput.addEventListener('change', calculate);
-        qtyInput.addEventListener('input', calculate);
+                        document.getElementById('js-tier-subtotal').innerText = subtotal.toLocaleString() + '円';
+                        document.getElementById('js-tier-tax').innerText = tax.toLocaleString() + '円';
+                        document.getElementById('js-tier-total').innerText = total.toLocaleString() + '円';
+                        document.getElementById('js-tier-unit-incl-tax').innerText = unitInclTax.toLocaleString() + '円';
+                      }
 
-        calculate(); // 初回計算
-      };
+                      qtyInput.addEventListener('change', calculate);
+                      qtyInput.addEventListener('input', calculate);
 
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initTierPricing);
-      } else {
-        initTierPricing();
-      }
-    })();
-  </script>
+                      calculate();
+                    };
+
+                    if (document.readyState === 'loading') {
+                      document.addEventListener('DOMContentLoaded', initTierPricing);
+                    } else {
+                      initTierPricing();
+                    }
+                  })();
+                </script>
               {%- endif -%}
               {% comment %} --- カスタマイズここまで --- {% endcomment %}
 
