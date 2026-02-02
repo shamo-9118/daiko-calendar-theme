@@ -1,0 +1,9 @@
+# Shopify CLIの一時ファイル
+.shopify/
+
+# ログファイル※念の為
+*.log
+
+# OS固有のゴミファイル※念の為
+.DS_Store
+Thumbs.db
